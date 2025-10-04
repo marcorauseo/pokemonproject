@@ -1,10 +1,8 @@
 package com.example.pokedex.controller;
 
-import com.example.pokedex.model.PokemonInfo;
 import com.example.pokedex.service.PokemonService;
 import io.javalin.apibuilder.EndpointGroup;
 import io.javalin.http.Context;
-import io.javalin.http.HttpStatus;
 
 import static io.javalin.apibuilder.ApiBuilder.get;
 
