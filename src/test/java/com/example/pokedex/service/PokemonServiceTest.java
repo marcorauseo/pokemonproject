@@ -7,29 +7,61 @@ import com.example.pokedex.model.PokemonInfo;
 import com.example.pokedex.util.Either;
 import com.example.pokedex.util.HttpError;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
 
 public class PokemonServiceTest {
 
+    static class FakePokeApiClient extends PokeApiClient {
+        private final Either<HttpError, PokeApiSpeciesResponse> result;
+
+        public FakePokeApiClient(Either<HttpError, PokeApiSpeciesResponse> result) {
+            super(null, null, null); // non usato
+            this.result = result;
+        }
+
+        @Override
+        public Either<HttpError, PokeApiSpeciesResponse> fetchSpecies(String name) {
+            return result;
+        }
+    }
+
+    static class FakeFunTranslationsClient extends FunTranslationsClient {
+        private final Either<HttpError, String> yodaResult;
+        private final Either<HttpError, String> shakespeareResult;
+
+        public FakeFunTranslationsClient(Either<HttpError, String> yodaResult,
+                                         Either<HttpError, String> shakespeareResult) {
+            super(null, null, null, null); // non usato
+            this.yodaResult = yodaResult;
+            this.shakespeareResult = shakespeareResult;
+        }
+
+        @Override
+        public Either<HttpError, String> yoda(String text) {
+            return yodaResult;
+        }
+
+        @Override
+        public Either<HttpError, String> shakespeare(String text) {
+            return shakespeareResult;
+        }
+    }
+
     @Test
     void basicInfo_ok() {
-        var pokeApi = Mockito.mock(PokeApiClient.class);
-        var fun = Mockito.mock(FunTranslationsClient.class);
-        var service = new PokemonService(pokeApi, fun);
-
         var species = new PokeApiSpeciesResponse(
                 "mewtwo",
                 true,
                 new PokeApiSpeciesResponse.Habitat("rare"),
-                List.of(new PokeApiSpeciesResponse.FlavorTextEntry("A test\\ntext", new PokeApiSpeciesResponse.NamedResource("en")))
+                List.of(new PokeApiSpeciesResponse.FlavorTextEntry("A test\\ntext",
+                        new PokeApiSpeciesResponse.NamedResource("en")))
         );
-        when(pokeApi.fetchSpecies("mewtwo")).thenReturn(Either.right(species));
+        var pokeApi = new FakePokeApiClient(Either.right(species));
+        var fun = new FakeFunTranslationsClient(null, null);
+        var service = new PokemonService(pokeApi, fun);
 
         var result = service.getBasicInfo("mewtwo");
         assertTrue(result.isRight());
@@ -37,23 +69,21 @@ public class PokemonServiceTest {
         assertEquals("mewtwo", info.getName());
         assertTrue(info.isLegendary());
         assertEquals("rare", info.getHabitat());
-        assertEquals("A test text", info.getDescription());
+        assertEquals("A test\\ntext", info.getDescription());
     }
 
     @Test
     void translated_yoda_for_legendary() {
-        var pokeApi = Mockito.mock(PokeApiClient.class);
-        var fun = Mockito.mock(FunTranslationsClient.class);
-        var service = new PokemonService(pokeApi, fun);
-
         var species = new PokeApiSpeciesResponse(
                 "mewtwo",
                 true,
                 new PokeApiSpeciesResponse.Habitat("rare"),
-                List.of(new PokeApiSpeciesResponse.FlavorTextEntry("Created by a scientist.", new PokeApiSpeciesResponse.NamedResource("en")))
+                List.of(new PokeApiSpeciesResponse.FlavorTextEntry("Created by a scientist.",
+                        new PokeApiSpeciesResponse.NamedResource("en")))
         );
-        when(pokeApi.fetchSpecies("mewtwo")).thenReturn(Either.right(species));
-        when(fun.yoda(anyString())).thenReturn(Either.right("Created by a scientist, it was."));
+        var pokeApi = new FakePokeApiClient(Either.right(species));
+        var fun = new FakeFunTranslationsClient(Either.right("Created by a scientist, it was."), null);
+        var service = new PokemonService(pokeApi, fun);
 
         var result = service.getTranslatedInfo("mewtwo");
         assertTrue(result.isRight());
@@ -62,18 +92,16 @@ public class PokemonServiceTest {
 
     @Test
     void translated_shakespeare_for_non_legendary_non_cave() {
-        var pokeApi = Mockito.mock(PokeApiClient.class);
-        var fun = Mockito.mock(FunTranslationsClient.class);
-        var service = new PokemonService(pokeApi, fun);
-
         var species = new PokeApiSpeciesResponse(
                 "pikachu",
                 false,
                 new PokeApiSpeciesResponse.Habitat("forest"),
-                List.of(new PokeApiSpeciesResponse.FlavorTextEntry("Electric mouse.", new PokeApiSpeciesResponse.NamedResource("en")))
+                List.of(new PokeApiSpeciesResponse.FlavorTextEntry("Electric mouse.",
+                        new PokeApiSpeciesResponse.NamedResource("en")))
         );
-        when(pokeApi.fetchSpecies("pikachu")).thenReturn(Either.right(species));
-        when(fun.shakespeare(anyString())).thenReturn(Either.right("Electric mouse, verily."));
+        var pokeApi = new FakePokeApiClient(Either.right(species));
+        var fun = new FakeFunTranslationsClient(null, Either.right("Electric mouse, verily."));
+        var service = new PokemonService(pokeApi, fun);
 
         var result = service.getTranslatedInfo("pikachu");
         assertTrue(result.isRight());
@@ -82,18 +110,16 @@ public class PokemonServiceTest {
 
     @Test
     void translated_fallback_on_translation_error() {
-        var pokeApi = Mockito.mock(PokeApiClient.class);
-        var fun = Mockito.mock(FunTranslationsClient.class);
-        var service = new PokemonService(pokeApi, fun);
-
         var species = new PokeApiSpeciesResponse(
                 "pikachu",
                 false,
                 new PokeApiSpeciesResponse.Habitat("forest"),
-                List.of(new PokeApiSpeciesResponse.FlavorTextEntry("Electric mouse.", new PokeApiSpeciesResponse.NamedResource("en")))
+                List.of(new PokeApiSpeciesResponse.FlavorTextEntry("Electric mouse.",
+                        new PokeApiSpeciesResponse.NamedResource("en")))
         );
-        when(pokeApi.fetchSpecies("pikachu")).thenReturn(Either.right(species));
-        when(fun.shakespeare(anyString())).thenReturn(Either.left(new HttpError(429, "Rate limited")));
+        var pokeApi = new FakePokeApiClient(Either.right(species));
+        var fun = new FakeFunTranslationsClient(null, Either.left(new HttpError(429, "Rate limited")));
+        var service = new PokemonService(pokeApi, fun);
 
         var result = service.getTranslatedInfo("pikachu");
         assertTrue(result.isRight());
@@ -102,11 +128,9 @@ public class PokemonServiceTest {
 
     @Test
     void not_found_propagates() {
-        var pokeApi = Mockito.mock(PokeApiClient.class);
-        var fun = Mockito.mock(FunTranslationsClient.class);
+        var pokeApi = new FakePokeApiClient(Either.left(new HttpError(404, "Pokemon not found: missingno")));
+        var fun = new FakeFunTranslationsClient(null, null);
         var service = new PokemonService(pokeApi, fun);
-
-        when(pokeApi.fetchSpecies("missingno")).thenReturn(Either.left(new HttpError(404, "Pokemon not found: missingno")));
 
         var result = service.getBasicInfo("missingno");
         assertTrue(result.isLeft());

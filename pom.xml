@@ -60,6 +60,18 @@
       <version>5.11.0</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>mockwebserver</artifactId>
+      <version>4.12.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.javalin</groupId>
+      <artifactId>javalin-testtools</artifactId>
+      <version>6.1.6</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
