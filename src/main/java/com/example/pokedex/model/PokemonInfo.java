@@ -1,5 +1,6 @@
 package com.example.pokedex.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class PokemonInfo {
@@ -7,14 +8,15 @@ public class PokemonInfo {
     private final String name;
     private final String description;
     private final String habitat;
-    @JsonProperty("isLegendary")
-    private final boolean isLegendary;
 
-    public PokemonInfo(String name, String description, String habitat, boolean isLegendary) {
+    @JsonIgnore // evita la doppia proprietà nel JSON
+    private final boolean legendary;
+
+    public PokemonInfo(String name, String description, String habitat, boolean legendary) {
         this.name = name;
         this.description = description;
         this.habitat = habitat;
-        this.isLegendary = isLegendary;
+        this.legendary = legendary;
     }
 
     public static PokemonInfo fromSpecies(PokeApiSpeciesResponse species) {
@@ -28,11 +30,14 @@ public class PokemonInfo {
     }
 
     public PokemonInfo withDescription(String newDesc) {
-        return new PokemonInfo(this.name, newDesc, this.habitat, this.isLegendary);
+        return new PokemonInfo(this.name, newDesc, this.habitat, this.legendary);
     }
 
     public String getName() { return name; }
     public String getDescription() { return description; }
     public String getHabitat() { return habitat; }
-    public boolean isLegendary() { return isLegendary; }
+
+
+    @JsonProperty("legendary")
+    public boolean isLegendary() { return legendary; }
 }
